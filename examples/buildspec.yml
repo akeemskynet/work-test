@@ -1,0 +1,39 @@
+version: 0.2
+
+env:
+  variables:
+    terraform_version: "1.2.2"
+    s3_bucket: "dev-s3-terraform/terraform_binaries"
+  git-credential-helper: yes
+
+
+phases:
+  pre_build:
+    commands:
+      - apt-get update && apt-get -y install jq
+      - aws s3 cp s3://"$s3_bucket"/"$terraform_version"/terraform_"$terraform_version"_linux_amd64.zip .
+      - unzip -d /usr/local/bin/ terraform_"$terraform_version"_linux_amd64.zip
+      - ls -la /usr/local/bin/
+
+  build:
+    commands:
+      - echo "-------------- Configuring AWS credentials --------------"
+      - curl -qls -o aws_credentials.json http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+      - aws --version
+      - aws configure set region $AWS_REGION
+      - aws configure set aws_access_key_id `jq -r '.AccessKeyId' aws_credentials.json`
+      - aws configure set aws_secret_access_key `jq -r '.SecretAccessKey' aws_credentials.json`
+      - aws configure set aws_session_token `jq -r '.Token' aws_credentials.json`
+      - echo "-------------- AWS credentials configured --------------"
+      - echo "Running terraform command & version"
+      - terraform -version
+
+
+      ####### Initializing Stack #######
+      - terraform init -backend-config=dev_backend.hcl
+
+      ####### Terraform Plan #######
+      - terraform plan -no-color --var-file=terraform.tfvars
+
+      ####### Creating Stack #######
+      - terraform apply -auto-approve --var-file=terraform.tfvars
