@@ -1,78 +1,78 @@
-resource "kubectl_manifest" "karpenter_provisioner" {
-  force_new = true
-  yaml_body = <<YAML
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
-metadata:
-  name: karpenter
-namespace: karpenter
-spec:
-  kubeletConfiguration:
-    containerRuntime: "containerd"  #Currently set to dockerd, but containerd only works with bottlerocket images
-  requirements:
-    - key: karpenter.sh/capacity-type
-      operator: In
-      values: ["on-demand"]
-  limits:
-    resources:
-      cpu: "${var.cpu_limits}"
-      memory: "${var.memory_limits}"
-  instanceProfile: ${aws_iam_instance_profile.karpenter.name}
-  providerRef:                                # optional, recommended to use instead of `provider`
-    name: "${module.eks.cluster_id}-karpenter-node-template"
-  ttlSecondsAfterEmpty: 60
-  ttlSecondsUntilExpired: 1296000 #Currently set to 15 days (60 * 60 * 24 * 15)
-YAML
-  depends_on = [
-    helm_release.karpenter
-  ]
-}
+# resource "kubectl_manifest" "karpenter_provisioner" {
+#   force_new = true
+#   yaml_body = <<YAML
+# apiVersion: karpenter.sh/v1alpha5
+# kind: Provisioner
+# metadata:
+#   name: karpenter
+# namespace: karpenter
+# spec:
+#   kubeletConfiguration:
+#     containerRuntime: "containerd"  #Currently set to dockerd, but containerd only works with bottlerocket images
+#   requirements:
+#     - key: karpenter.sh/capacity-type
+#       operator: In
+#       values: ["on-demand"]
+#   limits:
+#     resources:
+#       cpu: "${var.cpu_limits}"
+#       memory: "${var.memory_limits}"
+#   instanceProfile: ${aws_iam_instance_profile.karpenter.name}
+#   providerRef:                                # optional, recommended to use instead of `provider`
+#     name: "${module.eks.cluster_id}-karpenter-node-template"
+#   ttlSecondsAfterEmpty: 60
+#   ttlSecondsUntilExpired: 1296000 #Currently set to 15 days (60 * 60 * 24 * 15)
+# YAML
+#   depends_on = [
+#     helm_release.karpenter
+#   ]
+# }
 
-resource "kubectl_manifest" "karpenter_node_template" {
-  force_new = true
-  yaml_body = <<YAML
-apiVersion: karpenter.k8s.aws/v1alpha1
-kind: AWSNodeTemplate
-metadata:
-  name: "${module.eks.cluster_id}-karpenter-node-template"
-spec:
-  amiFamily: "${var.ami_family}"
-  subnetSelector:                             # required
-    aws-ids: ${join(",", "${var.managed_nodes_subnet_ids}")}
-  securityGroupSelector:                      # required, when not using launchTemplate
-    aws-ids: "${aws_security_group.eks_security_group.id},${module.eks.cluster_primary_security_group_id},${module.eks.node_security_group_id}"
-  amiSelector:
-    aws-ids: "${var.karpenter_ami_id}"
-  blockDeviceMappings:
-    - deviceName: /dev/xvda
-      ebs:
-        volumeSize: ${var.karpenter_node_disk_size}
-        volumeType: ${var.karpenter_node_disk_type}
-        deleteOnTermination: true
-  userData: |
-    MIME-Version: 1.0
-    Content-Type: multipart/mixed; boundary="BOUNDARY"
+# resource "kubectl_manifest" "karpenter_node_template" {
+#   force_new = true
+#   yaml_body = <<YAML
+# apiVersion: karpenter.k8s.aws/v1alpha1
+# kind: AWSNodeTemplate
+# metadata:
+#   name: "${module.eks.cluster_id}-karpenter-node-template"
+# spec:
+#   amiFamily: "${var.ami_family}"
+#   subnetSelector:                             # required
+#     aws-ids: ${join(",", "${local.managed_nodes_subnet_ids}")}
+#   securityGroupSelector:                      # required, when not using launchTemplate
+#     aws-ids: "${aws_security_group.eks_security_group.id},${module.eks.cluster_primary_security_group_id},${module.eks.node_security_group_id}"
+#   amiSelector:
+#     aws-ids: "${var.karpenter_ami_id}"
+#   blockDeviceMappings:
+#     - deviceName: /dev/xvda
+#       ebs:
+#         volumeSize: ${var.karpenter_node_disk_size}
+#         volumeType: ${var.karpenter_node_disk_type}
+#         deleteOnTermination: true
+#   userData: |
+#     MIME-Version: 1.0
+#     Content-Type: multipart/mixed; boundary="BOUNDARY"
 
-    --BOUNDARY
-    Content-Type: text/x-shellscript; charset="us-ascii"
+#     --BOUNDARY
+#     Content-Type: text/x-shellscript; charset="us-ascii"
 
-    #!/bin/bash
-    mkdir -p /home/ec2-user/.ssh
-    touch /home/ec2-user/.ssh/authorized_keys
-    echo "${var.break_glass_key}" > /home/ec2-user/.ssh/authorized_keys
-    chmod 600 /home/ec2-user/.ssh/authorized_keys
-    chmod 700 /home/ec2-user/.ssh
-    chown -R ec2-user /home/ec2-user/
-    --BOUNDARY--
-  tags:
-    ${jsonencode(var.karpenter_tags)}
+#     #!/bin/bash
+#     mkdir -p /home/ec2-user/.ssh
+#     touch /home/ec2-user/.ssh/authorized_keys
+#     echo "${var.break_glass_key}" > /home/ec2-user/.ssh/authorized_keys
+#     chmod 600 /home/ec2-user/.ssh/authorized_keys
+#     chmod 700 /home/ec2-user/.ssh
+#     chown -R ec2-user /home/ec2-user/
+#     --BOUNDARY--
+#   tags:
+#     ${jsonencode(var.karpenter_tags)}
 
-YAML
-  depends_on = [
-    helm_release.karpenter,
-    kubectl_manifest.karpenter_provisioner
-  ]
-}
+# YAML
+#   depends_on = [
+#     helm_release.karpenter,
+#     kubectl_manifest.karpenter_provisioner
+#   ]
+# }
 
 resource "kubectl_manifest" "secretsmanager_secretstore" {
   force_new = true

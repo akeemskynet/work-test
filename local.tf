@@ -1,5 +1,5 @@
 locals {
-
+managed_nodes_subnet_ids  = module.vpc.private_subnets
   eks_groups = {
     admins     = "system:masters"
     developers = "nccf-developers"
@@ -8,19 +8,19 @@ locals {
 
   cluster_addons = {
     coredns = {
-      addon_version     = "v1.10.1-eksbuild.1"
+      addon_version     = "v1.11.1-eksbuild.9"
       resolve_conflicts = "OVERWRITE"
     }
     kube-proxy = {
-      addon_version     = "v1.27.1-eksbuild.1"
+      addon_version     = "v1.29.3-eksbuild.5"
       resolve_conflicts = "OVERWRITE"
     }
     vpc-cni = {
-      addon_version     = "v1.12.5-eksbuild.2"
+      addon_version     = "v1.18.2-eksbuild.1"
       resolve_conflicts = "OVERWRITE"
     }
     aws-ebs-csi-driver = {
-      addon_version            = "v1.17.0-eksbuild.1"
+      addon_version            = "v1.31.0-eksbuild.1"
       resolve_conflicts        = "OVERWRITE"
       service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
     }

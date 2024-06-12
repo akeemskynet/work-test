@@ -1,7 +1,7 @@
 resource "aws_security_group" "eks_security_group" {
   name        = "${var.project}-${var.environment}-${var.eks_cluster_name}-sg"
   description = "Allows traffic to and from EKS group"
-  vpc_id      = var.eks_vpc_id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     from_port   = 0

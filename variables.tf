@@ -2,6 +2,15 @@ variable "environment" {
   type = string
 }
 
+variable "vpc_cidr" {
+  type = string
+}
+variable "private_subnets_cidr" {
+  type = list(string)
+}
+variable "public_subnets_cidr" {
+  type = list(string)
+}
 variable "project" {
   type = string
 }
@@ -11,18 +20,18 @@ variable "region" {
   default = "us-east-1"
 }
 
-variable "eks_vpc_id" {
-  type = string
-}
+# variable "eks_vpc_id" {
+#   type = string
+# }
 
-variable "eks_subnet_ids" {
-  type = list(string)
-}
+# variable "eks_subnet_ids" {
+#   type = list(string)
+# }
 
-variable "control_plane_subnet_ids" {
-  type    = list(string)
-  default = []
-}
+# variable "control_plane_subnet_ids" {
+#   type    = list(string)
+#   default = []
+# }
 
 variable "eks_cluster_name" {
   type = string
@@ -71,10 +80,12 @@ variable "role_list" {
 variable "eks_additional_policies" {
   type = list(string)
   default = [
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/AutoScalingFullAccess",
-    "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess"
+     "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess",
+     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   ]
 }
 
@@ -103,9 +114,9 @@ variable "load_balancer_tags" {
   default = ""
 }
 
-variable "managed_nodes_subnet_ids" {
-  type = list(string)
-}
+# variable "managed_nodes_subnet_ids" {
+#   type = list(string)
+# }
 
 variable "managed_nodes_disk_space" {
   type = number
@@ -222,6 +233,7 @@ variable "ssm_secrets_secret_stores" {
       external_secrets_operator_sa             = string
     }
   ))
+  default = null
 }
 
 variable "ssm_parameter_external_secrets_names" {
@@ -235,6 +247,7 @@ variable "ssm_parameter_external_secrets_names" {
       ssm_parameter_secret_key_name              = string
     }
   ))
+  default = null
 }
 
 # variable "secrets_ssm_parameter_arns" {
@@ -253,6 +266,7 @@ variable "secrets_manager_secret_stores" {
       external_secrets_operator_sa              = string
     }
   ))
+  default = null
 }
 
 variable "secretsmanager_external_secrets_names" {
@@ -265,6 +279,7 @@ variable "secretsmanager_external_secrets_names" {
       secretsmanager_secretstore_name                  = string
     }
   ))
+  default = null
 }
 
 # variable "secrets_manager_arns" {
@@ -317,14 +332,7 @@ variable "kubernetes_namespaces" {
       namespace = string
     }
   ))
-  default = {
-    "keda" = {
-      namespace = "keda"
-    }
-    "elastic" = {
-      namespace = "elastic"
-    }
-  }
+  default = null
 }
 
 variable "create_kms_key" {
