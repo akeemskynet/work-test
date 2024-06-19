@@ -2,10 +2,10 @@ module "karpenter_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.28.0"
 
-  role_name                          = "${module.eks.cluster_id}-karpenter-controller"
+  role_name                          = "${module.eks.cluster_name}-karpenter-controller"
   attach_karpenter_controller_policy = true
 
-  karpenter_controller_cluster_id = module.eks.cluster_id
+  karpenter_controller_cluster_id = module.eks.cluster_name
   karpenter_controller_node_iam_role_arns = [
     module.eks.cluster_iam_role_arn,
     module.eks.eks_managed_node_groups.cluster_mgr.iam_role_arn
@@ -28,13 +28,13 @@ module "loadbalancer_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.28.0"
 
-  role_name                              = "${module.eks.cluster_id}-loadbalancer-controller"
+  role_name                              = "${module.eks.cluster_name}-loadbalancer-controller"
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
     ex = {
       provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:${module.eks.cluster_id}-loadbalancer-sa"]
+      namespace_service_accounts = ["kube-system:${module.eks.cluster_name}-loadbalancer-sa"]
     }
   }
   depends_on = [
@@ -47,7 +47,7 @@ module "efs_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.28.0"
 
-  role_name             = "${module.eks.cluster_id}-efs-controller"
+  role_name             = "${module.eks.cluster_name}-efs-controller"
   attach_efs_csi_policy = true
 
   oidc_providers = {
@@ -67,7 +67,7 @@ module "external_secrets_operator_irsa" {
   version = "5.28.0"
 
   for_each                       = merge(var.irsa_external_operators, local.irsa_internal_operators)
-  role_name                      = "${module.eks.cluster_id}-${each.key}-eso-operator"
+  role_name                      = "${module.eks.cluster_name}-${each.key}-eso-operator"
   attach_external_secrets_policy = true
 
   external_secrets_ssm_parameter_arns   = each.value.secrets_ssm_parameter_arns
@@ -89,14 +89,14 @@ module "keda_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.28.0"
 
-  role_name = "${module.eks.cluster_id}-keda-controller"
+  role_name = "${module.eks.cluster_name}-keda-controller"
 
   role_policy_arns = var.keda_irsa_role_policy_arns
 
   oidc_providers = {
     ex = {
       provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["keda:${module.eks.cluster_id}-keda-sa"]
+      namespace_service_accounts = ["keda:${module.eks.cluster_name}-keda-sa"]
     }
   }
   depends_on = [
@@ -108,7 +108,7 @@ module "keda_irsa" {
 module "ebs_csi_irsa" {
   source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version   = "5.28.0"
-  role_name = "${module.eks.cluster_id}-ebs-csi-controller"
+  role_name = "${module.eks.cluster_name}-ebs-csi-controller"
 
   attach_ebs_csi_policy = true
 

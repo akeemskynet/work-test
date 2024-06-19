@@ -28,7 +28,7 @@ managed_nodes_subnet_ids  = module.vpc.private_subnets
 
   k8s_service_accounts_configs = merge({
     loadbalancer_sa = {
-      name      = "${module.eks.cluster_id}-loadbalancer-sa"
+      name      = "${module.eks.cluster_name}-loadbalancer-sa"
       role_arn  = module.loadbalancer_irsa.iam_role_arn,
       namespace = "kube-system"
     }
@@ -51,7 +51,7 @@ managed_nodes_subnet_ids  = module.vpc.private_subnets
     }
 
     keda_sa = {
-      name      = "${module.eks.cluster_id}-keda-sa"
+      name      = "${module.eks.cluster_name}-keda-sa"
       role_arn  = module.keda_irsa.iam_role_arn
       namespace = "keda"
     }

@@ -9,7 +9,7 @@ public_subnets_cidr          =  ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
 eks_cluster_name             = "eks"
 eks_cluster_version          = "1.29"
 eks_cluster_is_private       = true
-eks_cluster_is_public        = true
+eks_cluster_is_public        = false
 eks_cluster_dns_suffix       = "amazonaws.com"
 eks_ami                      = ""
 karpenter_ami_id             = ""
@@ -54,11 +54,14 @@ user_list = {
 #   }
 # }
 
-# eks_additional_policies = [
-#   ssm_managed   = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-#   ec2_container = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-#   auto_scaling  = "arn:aws:iam::aws:policy/AutoScalingFullAccess"
-# ]
+# eks_additional_policies = {
+#      a="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+#      b="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+#     c="arn:aws:iam::aws:policy/AutoScalingFullAccess",
+#      d="arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess",
+#      e="arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+#      f="arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+#   }
 
 additional_ips_for_security_groups = [
   "10.0.0.0/16"     #all ips from within the accounts

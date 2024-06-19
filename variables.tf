@@ -78,15 +78,15 @@ variable "role_list" {
 }
 
 variable "eks_additional_policies" {
-  type = list(string)
-  default = [
-     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AutoScalingFullAccess",
-     "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess",
-     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  ]
+  type = map(string)
+  default = {
+     a="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+     b="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    c="arn:aws:iam::aws:policy/AutoScalingFullAccess",
+     d="arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess",
+     e="arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+     f="arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+  }
 }
 
 variable "http_put_response_hop_limit" {

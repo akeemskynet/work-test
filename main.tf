@@ -20,9 +20,69 @@ provider "helm" {
     }
   }
 }
+resource "aws_security_group" "bastion_sg" {
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+resource "aws_key_pair" "key" {
+  key_name   = "my-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+resource "aws_instance" "private_instance" {
+  ami                         = "ami-0b3aef6bc281a13b2"  # Replace with your preferred AMI ID
+  instance_type               = "t2.micro"
+  subnet_id                   = module.vpc.private_subnets.0
+  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
+  key_name                    = aws_key_pair.key.key_name
+  # iam_instance_profile = aws_iam_instance_profile.ec2_eks_access_profile.name
+  associate_public_ip_address = false
+
+  tags = {
+    Name = "PrivateInstance"
+  }
+}
+
+
+resource "aws_ec2_instance_connect_endpoint" "ec2_connection" {
+  subnet_id = module.vpc.private_subnets.0
+  security_group_ids = [aws_security_group.bastion_sg.id]
+  depends_on = [aws_instance.private_instance]
+}
+# The following resource is responsible for management of proxy connection to ec2 instance
+# You should install sshuttle in your local laptop
+resource "null_resource" "setup_sshuttle" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = <<EOT
+      fuser -k 8888/tcp
+      sleep 5
+      nohup aws ec2-instance-connect open-tunnel --instance-id ${aws_instance.private_instance.id} --local-port 8888 > open-tunnel.log 2>&1 &
+      sleep 5
+      pkill sshuttle
+      sshuttle --dns -r ec2-user@127.0.0.1:8888 ${module.vpc.vpc_cidr_block} -D --ssh-cmd 'ssh -i ~/.ssh/id_rsa' 
+    EOT
+
+  }
+
+  depends_on = [aws_ec2_instance_connect_endpoint.ec2_connection]
+}
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "18.31.2"
+  # version = "18.31.2"
 
   vpc_id                                = module.vpc.vpc_id
   subnet_ids                            = module.vpc.private_subnets
@@ -35,13 +95,28 @@ module "eks" {
   cluster_additional_security_group_ids = [aws_security_group.eks_security_group.id]
   cluster_encryption_policy_name        = "${var.project}-${var.environment}-${var.eks_cluster_name}-cluster-encryption-policy"
   cluster_encryption_policy_path        = "/${var.project}-${var.environment}-${var.eks_cluster_name}-eks/"
-  cluster_iam_role_dns_suffix           = var.eks_cluster_dns_suffix
+  # cluster_iam_role_dns_suffix           = var.eks_cluster_dns_suffix
   cluster_security_group_name           = "${var.project}-${var.environment}-${var.eks_cluster_name}-eks-security-group"
   iam_role_name                         = "${var.project}-${var.environment}-${var.eks_cluster_name}-role"
   enable_irsa                           = var.enable_irsa
-  manage_aws_auth_configmap             = var.manage_aws_auth_config
-  aws_auth_users                        = local.user_list
-  aws_auth_roles                        = local.role_list
+  authentication_mode = "API_AND_CONFIG_MAP"
+  # enable_cluster_creator_admin_permissions = true
+  access_entries = {
+
+    user = {
+      kubernetes_groups = []
+      principal_arn     = data.aws_caller_identity.current.arn
+
+      policy_associations = {
+        example = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type       = "cluster"
+          }
+        }
+      }
+    }
+  }
   tags                                  = var.tags
 
   ###### Update permissions for the aws-auth for nodes #######
@@ -102,4 +177,5 @@ module "eks" {
       force_update_version = true
     }
   }
+  depends_on = [ null_resource.setup_sshuttle ]
 }
